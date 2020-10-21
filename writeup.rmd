@@ -1,0 +1,151 @@
+---
+title: "PML"
+author: "Anmol"
+date: "10/21/2020"
+output: html_document
+---
+
+**Outline**
+This document is the final report of the Peer Assessment project from Coursera’s course Practical Machine Learning, as part of the Specialization in Data Science. It was built up in RStudio, using its knitr functions, meant to be published in html format.
+The report predicts the patterns/manner in which users of exercise devices exercise. The predictions are performed using various machine learning algorithms.
+
+The dataset consists on 5 classes:
+.Lifting weights according to the specification.This is Class A.
+. Throwing the elbow towards the front. This is Class B.
+. Lifting the dumbbell halfway only. This is Class C.
+. Lowering the dumbbell only halfway. This is Class D.
+. Throwing the hips towards the front. This is Class E.
+
+Refer this for more info:  http://groupware.les.inf.puc-rio.br/har 
+
+**About the project**
+Collection of data about personal activities is now convenient by using various devices such as Fitbit, Nike FuelBand and many more.
+
+
+These are mainly used by enthusiasts who take measurements related to their health regularly. The goal of this project is to use the data from accelerometers on the belt, forearm, arm and dunbell of sex different participants.
+
+
+
+**Data Collection**
+Traing dataset: https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv
+Testing dataset:  https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv
+
+
+
+ Data Preparation:
+
+Loading the data as well as the required libraries:
+(Load testing as well as the training data)
+```{r load the data}
+linktrain <-"https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
+linktest<-"https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"
+train.dataset <- read.csv(url(linktrain),na.strings = c("NA", "#DIV/0!", ""))
+test.dataset <- read.csv(url(linktest),na.strings = c("NA", "#DIV/0!", ""))
+```
+Using the random forest algorithm for predicting the model as well as the analysis for classification:
+```{r load libraries}
+library(caret)
+library(ggplot2)
+library(randomForest)
+library(corrplot)
+```
+
+Install these packages before:
+1. ggplot2
+2. caret
+3. rlang (latest version)
+
+
+ EDA(training dataset)
+
+```{r}
+dim(train.dataset)
+```
+
+```{r}
+table(train.dataset$classe)
+```
+
+Above is the distribution of 19622 observations...
+We get to know about the ditribution of all the classes in our dataset.
+EDA(testing dataset)
+
+```{r}
+dim(test.dataset)
+```
+
+Tidying the dataset
+
+Now, we will be handling the mising values. Tidying dataset is one of the most critical steps. Handling the outliers , missing values (NA values) is very crucial for our analysis.
+
+
+
+
+```{r}
+# counting the NA values
+HNA_C = sapply(1:dim(train.dataset)[2],function(x)sum(is.na(train.dataset[,x])))
+lis_HNA = which(HNA_C>0)
+colnames(train.dataset[,c(1:7)])
+```
+
+```{r}
+train.dataset = train.dataset[,-lis_HNA]
+train.dataset = train.dataset[,-c(1:7)]
+train.dataset$classe = factor(train.dataset$classe)
+dim(train.dataset)
+```
+```{r}
+test.dataset = test.dataset[,-lis_HNA]
+test.dataset = test.dataset[,-c(1:7)]
+dim(test.dataset)
+```
+This helped alot in cleaning our dataset and converting it to a tidy form.
+The columns which do not have any kind of relevance need to be removed from the data.
+
+Ex:, time stamp1 has no relevance to the type of barbell lift they will be performing. These column removal can reduce our processing time and help us understand our data well.
+
+Let us look at the data.This is how our data will look like.
+```{r}
+head(train.dataset)
+```
+
+
+EDA
+Principal component analysis is a method needed to be performed for dimensionality reduction. This results in better learning rates and simplification of the matrices involved.
+
+Correlating the variables:
+```{r}
+corr.matr <- cor(train.dataset[,-53])
+corrplot(corr.matr, method = "color", type = "lower")
+```
+
+
+The contrast value is directly proportional to the correlation value.
+
+Since the correlation is so less, reduction of the dimensionality is not required.
+Doing further analysis.
+
+
+RAndom FOrest algorithm for model prediction::
+```{r error=TRUE,warning = FALSE,message = FALSE}
+traincont <- trainControl(method = "cv", number = 3, verboseIter=FALSE)
+RandomFork <- train(classe ~ ., data = train.dataset, method = "rf", trControl = traincont)
+RandomFork$finalModel
+predictFork <- predict(RandomFork, test.dataset)
+confusMatFork <- confusionMatrix(predictFork, test.dataset$classe)
+confusMatFork
+```
+Visualizing the random forest
+
+```{r}
+randomyFor=randomForest(classe~., data=train.dataset, method='class')
+predicplot = predict(randomyFor,test.dataset,type='class') 
+qplot(roll_belt, magnet_dumbbell_y, colour=classe, data=train.dataset)  
+```
+
+
+
+Prediction of the values::
+```{r}
+predic__test <- predict(RandomFork, test.dataset)
+predic__test
